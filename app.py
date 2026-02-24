@@ -136,12 +136,20 @@ if run_button:
         # ==============================
         st.subheader(f"📊 {selected_pair} - {strategy}")
         
-        # Metrics in simple columns
+        # Display metrics
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Test Return", f"{test_metrics['total_return_pct']:.2f}%")
-        col2.metric("Final Balance", f"£{test_metrics['final_balance']:,.0f}")
-        col3.metric("Sharpe", f"{test_metrics['sharpe_ratio']:.2f}")
-        col4.metric("Max DD", f"{test_metrics['max_drawdown_pct']:.1f}%")
+        col1.metric("Test Return", f"{test_metrics['total_return']:.2f}%")
+        col2.metric("Test Sharpe", f"{test_metrics['sharpe']:.2f}")
+        col3.metric("Max DD", f"{test_metrics['max_drawdown']:.1f}%")
+        col4.metric("Win Rate", f"{test_metrics['win_rate']:.1f}%")
+        
+        # Plot equity curves
+        st.subheader("📈 Strategy Performance (Starting at £1)")
+        equity_df = pd.DataFrame({
+            'Strategy': df['Cumulative_Strategy'],
+            'Buy & Hold': df['Cumulative_Market']
+        })
+        st.line_chart(equity_df)
         
         col5, col6, col7, col8 = st.columns(4)
         col5.metric("Win Rate", f"{test_metrics['win_rate']:.1f}%")
