@@ -17,61 +17,61 @@ def load_data(data_source, ticker, start_date=None, end_date=None):
             start_str = start_date.strftime('%Y-%m-%d') if start_date else '2020-01-01'
             end_str = end_date.strftime('%Y-%m-%d') if end_date else '2024-01-01'
             
-            # METHOD 1: Try with interval='1d' (most reliable for forex)
-            df = yf.download(
-                ticker, 
-                start=start_str, 
-                end=end_str,
-                interval='1d',
-                progress=False,
-                auto_adjust=True
-            )
-            
-            # If that fails, try alternative approach
-            if df.empty:
-                st.warning("Trying alternative download method...")
-                
-                # METHOD 2: Use Ticker object
-                ticker_obj = yf.Ticker(ticker)
-                df = ticker_obj.history(start=start_str, end=end_str)
-            
-            # If still empty, try with period parameter
-            if df.empty:
-                st.warning("Trying with period parameter...")
-                df = yf.download(ticker, period='5y', progress=False)
+            # Download data
+            df = yf.download(ticker, start=start_str, end=end_str, progress=False)
             
             if df.empty:
                 st.error(f"No data returned from Yahoo Finance for {ticker}")
                 return None
             
-            # Standardize column names
-            df.columns = [col.capitalize() for col in df.columns]
+            # Handle multi-level columns (tuple issue)
+            if isinstance(df.columns, pd.MultiIndex):
+                # Flatten multi-index columns
+                df.columns = [col[0] for col in df.columns]
+            else:
+                # If not multi-index, just use as is
+                df.columns = [str(col).replace(f' {ticker}', '').replace(ticker, '').strip() for col in df.columns]
             
-            # Ensure we have Adj Close (if not, use Close)
-            if 'Adj Close' not in df.columns and 'Close' in df.columns:
-                df['Adj Close'] = df['Close']
-                st.info("Using 'Close' as 'Adj Close'")
+            # Ensure we have standard column names
+            column_mapping = {
+                'Open': 'Open',
+                'High': 'High',
+                'Low': 'Low',
+                'Close': 'Close', 
+                'Adj Close': 'Adj Close',
+                'Volume': 'Volume'
+            }
             
-            st.success(f"✅ Successfully loaded {len(df)} rows for {ticker}")
+            # Create standardized columns
+            for std_col in column_mapping.values():
+                # Try to find matching column
+                for col in df.columns:
+                    if std_col.lower() in col.lower():
+                        df[std_col] = df[col]
+                        break
+            
+            # Ensure we have Adj Close (use Close if not available)
+            if 'Adj Close' not in df.columns:
+                if 'Close' in df.columns:
+                    df['Adj Close'] = df['Close']
+                else:
+                    # Try to find any price column
+                    price_cols = [col for col in df.columns if 'close' in col.lower() or 'price' in col.lower()]
+                    if price_cols:
+                        df['Adj Close'] = df[price_cols[0]]
+                    else:
+                        st.error("No price data found in Yahoo Finance response")
+                        return None
+            
+            # Keep only necessary columns
+            keep_cols = ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
+            df = df[[col for col in keep_cols if col in df.columns]]
+            
+            st.success(f"✅ Loaded {len(df)} rows for {ticker}")
             return df
             
         except Exception as e:
             st.error(f"Error loading from Yahoo Finance: {e}")
-            
-            # Try one last method with different interval
-            try:
-                st.warning("Attempting final fallback method...")
-                import yfinance as yf
-                df = yf.download(ticker, period='max', interval='1d', progress=False)
-                if not df.empty:
-                    df.columns = [col.capitalize() for col in df.columns]
-                    if 'Adj Close' not in df.columns and 'Close' in df.columns:
-                        df['Adj Close'] = df['Close']
-                    st.success("✅ Fallback method successful!")
-                    return df
-            except:
-                pass
-            
             return None
     
     else:  # Local CSV Files
