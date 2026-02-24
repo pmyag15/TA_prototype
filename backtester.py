@@ -35,15 +35,63 @@ def backtest_strategy(df, strategy_name, initial_capital=10000, **params):
     else:
         raise ValueError(f"Unknown strategy: {strategy_name}")
     
-    # Simple backtest logic
-    df['Position'] = df['Signal'].shift(1)
-    df['Returns'] = df['Adj Close'].pct_change()
-    df['Strategy_Returns'] = df['Position'] * df['Returns']
-    df['Portfolio_Value'] = initial_capital * (1 + df['Strategy_Returns']).cumprod()
-    
     # Calculate metrics
     total_return = (df['Portfolio_Value'].iloc[-1] / initial_capital - 1) * 100
     trades = df[df['Signal'] != 0].shape[0]
+    # After generating signals, ADD THIS SIMPLE CALCULATION:
+
+# Calculate daily returns
+df['Returns'] = df['Adj Close'].pct_change()
+
+# Strategy returns: follow the signal (1 = long, -1 = short, 0 = flat)
+df['Strategy_Returns'] = df['Signal'].shift(1) * df['Returns']
+
+# Calculate cumulative returns (starting from 1)
+df['Cumulative_Strategy'] = (1 + df['Strategy_Returns']).cumprod()
+df['Cumulative_Market'] = (1 + df['Returns']).cumprod()
+
+# Split into train/test
+split_idx = int(len(df) * (split_ratio / 100))
+train = df.iloc[:split_idx]
+test = df.iloc[split_idx:]
+
+# Calculate metrics using returns only
+def calculate_simple_metrics(data):
+    if len(data) == 0:
+        return {
+            'total_return': 0,
+            'sharpe': 0,
+            'max_drawdown': 0,
+            'win_rate': 0,
+            'trades': 0
+        }
+    
+    total_return = ((1 + data['Strategy_Returns']).prod() - 1) * 100
+    
+    if data['Strategy_Returns'].std() != 0:
+        sharpe = np.sqrt(252) * data['Strategy_Returns'].mean() / data['Strategy_Returns'].std()
+    else:
+        sharpe = 0
+    
+    cum_returns = (1 + data['Strategy_Returns']).cumprod()
+    peak = cum_returns.cummax()
+    drawdown = (cum_returns - peak) / peak
+    max_dd = drawdown.min() * 100
+    
+    trades = (data['Signal'] != 0).sum()
+    winning_days = (data['Strategy_Returns'] > 0).sum()
+    win_rate = (winning_days / len(data) * 100) if len(data) > 0 else 0
+    
+    return {
+        'total_return': total_return,
+        'sharpe': sharpe,
+        'max_drawdown': max_dd,
+        'win_rate': win_rate,
+        'trades': trades
+    }
+
+train_metrics = calculate_simple_metrics(train)
+test_metrics = calculate_simple_metrics(test)
     
     daily_win = df[df['Strategy_Returns'] > 0]['Strategy_Returns'].count()
     daily_total = df[df['Strategy_Returns'] != 0]['Strategy_Returns'].count()
