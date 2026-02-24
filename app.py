@@ -113,12 +113,25 @@ if run_button:
         # Calculate returns with position sizing
         df['Returns'] = df['Adj Close'].pct_change()
         
-        # Simple P&L calculation
-        df['Position_Value'] = df['Signal'] * lot_units * df['Adj Close'] / 100000  # Simplified
-        df['Daily_PnL'] = df['Position_Value'].shift(1) * df['Returns']
+       # Calculate returns with position sizing (FIXED VERSION)
+        df['Returns'] = df['Adj Close'].pct_change()
+        
+        # Calculate pip movement (for EUR/USD, 1 pip = 0.0001)
+        df['Pip_Movement'] = df['Adj Close'].diff() / 0.0001
+        
+        # Position value in £ (simplified: 1 lot = £10 per pip)
+        pip_value = 10  # £10 per pip for standard lot
+        df['Daily_PnL'] = df['Signal'].shift(1) * df['Pip_Movement'] * pip_value
+        
+        # Track account balance
         df['Account_Balance'] = initial_capital + df['Daily_PnL'].cumsum()
-        df['Strategy_Returns'] = df['Daily_PnL'] / df['Account_Balance'].shift(1)
-        df['Strategy_Returns'] = df['Strategy_Returns'].fillna(0)
+        
+        # Calculate strategy returns
+        df['Prev_Balance'] = df['Account_Balance'].shift(1).fillna(initial_capital)
+        df['Strategy_Returns'] = df['Daily_PnL'] / df['Prev_Balance']
+        df['Strategy_Returns'] = df['Strategy_Returns'].replace([np.inf, -np.inf], 0).fillna(0)
+        
+        # Remove any remaining NaN values
         df = df.dropna()
         
         # Split into train/test
