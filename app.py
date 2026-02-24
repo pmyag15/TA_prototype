@@ -178,25 +178,25 @@ if run_button:
                                  mode='markers', name='Sell',
                                  marker=dict(color='red', size=8, symbol='triangle-down')), row=1, col=1)
         
-       # Add train/test split line
-if len(train) > 0:
-    split_date = train.index[-1]
-    # Convert to string to avoid Plotly datetime bug
-    split_date_str = split_date.strftime('%Y-%m-%d')
-    
-    # Add the vertical line without annotation first
-    fig.add_vline(x=split_date, line_dash="dash", line_color="orange", row=1, col=1)
-    
-    # Add annotation separately
-    fig.add_annotation(
-        x=split_date,
-        y=0.98,
-        yref="paper",
-        text="Train/Test Split",
-        showarrow=False,
-        font=dict(size=10, color="orange"),
-        row=1, col=1
-    )
+               # Add train/test split line
+        if len(train) > 0:
+            split_date = train.index[-1]
+            # Convert to string to avoid Plotly datetime bug
+            split_date_str = split_date.strftime('%Y-%m-%d')
+            
+            # Add the vertical line without annotation first
+            fig.add_vline(x=split_date, line_dash="dash", line_color="orange", row=1, col=1)
+            
+            # Add annotation separately
+            fig.add_annotation(
+                x=split_date,
+                y=0.98,
+                yref="paper",
+                text="Train/Test Split",
+                showarrow=False,
+                font=dict(size=10, color="orange"),
+                row=1, col=1
+            )
         # Indicator subplot
         if strategy == "RSI Strategy":
             fig.add_trace(go.Scatter(x=df.index, y=df['RSI'],
