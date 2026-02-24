@@ -12,11 +12,30 @@ def load_data(data_source, ticker, start_date=None, end_date=None):
     if data_source == "Yahoo Finance (Live)":
         try:
             import yfinance as yf
+            # Download data
             df = yf.download(ticker, start=start_date, end=end_date, progress=False)
+            
             if df.empty:
                 st.error(f"No data returned from Yahoo Finance for {ticker}")
                 return None
+            
+            # Yahoo Finance returns a DataFrame with columns
+            # Reset the index to make Date a column, then set it as index again (standardizes format)
+            df = df.reset_index()
+            df = df.rename(columns={'Date': 'Date'})
+            df = df.set_index('Date')
+            
+            # Ensure we have the required columns
+            # Yahoo Finance returns: Open, High, Low, Close, Adj Close, Volume
+            required_cols = ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
+            
+            # Check if we have all columns
+            for col in required_cols:
+                if col not in df.columns:
+                    st.warning(f"Column '{col}' not found in Yahoo Finance data")
+            
             return df
+            
         except Exception as e:
             st.error(f"Error loading from Yahoo Finance: {e}")
             return None
