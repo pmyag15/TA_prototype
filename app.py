@@ -77,18 +77,6 @@ else:  # Bollinger
         'boll_std': boll_std
     }
 
-# Position sizing (simplified)
-st.sidebar.header("Position")
-initial_capital = st.sidebar.number_input("Starting Capital (£)", 1000, 100000, 10000, 1000)
-lot_size = st.sidebar.selectbox("Position Size", ["Standard (100k)", "Mini (10k)", "Micro (1k)"], index=1)
-
-# Convert lot size
-lot_units = {
-    "Standard (100k)": 100000,
-    "Mini (10k)": 10000,
-    "Micro (1k)": 1000
-}[lot_size]
-
 run_button = st.sidebar.button("🚀 Run Backtest", type="primary")
 
 # ==============================
