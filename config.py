@@ -1,5 +1,5 @@
 # config.py
-DATA_SOURCE =  "yahoo" #"local"   or
+DATA_SOURCE = "local"   #or   "yahoo" 
 CURRENCY_PAIRS = ["EURUSD=X", "GBPUSD=X", "AUDUSD=X", "USDCAD=X", "USDJPY=X"]
 LOCAL_FILE_MAPPING = {
     "EURUSD=X": "data/EURUSD=X.csv",
