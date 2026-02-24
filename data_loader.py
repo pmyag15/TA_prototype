@@ -12,32 +12,66 @@ def load_data(data_source, ticker, start_date=None, end_date=None):
     if data_source == "Yahoo Finance (Live)":
         try:
             import yfinance as yf
-            # Download data
-            df = yf.download(ticker, start=start_date, end=end_date, progress=False)
+            
+            # Format dates
+            start_str = start_date.strftime('%Y-%m-%d') if start_date else '2020-01-01'
+            end_str = end_date.strftime('%Y-%m-%d') if end_date else '2024-01-01'
+            
+            # METHOD 1: Try with interval='1d' (most reliable for forex)
+            df = yf.download(
+                ticker, 
+                start=start_str, 
+                end=end_str,
+                interval='1d',
+                progress=False,
+                auto_adjust=True
+            )
+            
+            # If that fails, try alternative approach
+            if df.empty:
+                st.warning("Trying alternative download method...")
+                
+                # METHOD 2: Use Ticker object
+                ticker_obj = yf.Ticker(ticker)
+                df = ticker_obj.history(start=start_str, end=end_str)
+            
+            # If still empty, try with period parameter
+            if df.empty:
+                st.warning("Trying with period parameter...")
+                df = yf.download(ticker, period='5y', progress=False)
             
             if df.empty:
                 st.error(f"No data returned from Yahoo Finance for {ticker}")
                 return None
             
-            # Yahoo Finance returns a DataFrame with columns
-            # Reset the index to make Date a column, then set it as index again (standardizes format)
-            df = df.reset_index()
-            df = df.rename(columns={'Date': 'Date'})
-            df = df.set_index('Date')
+            # Standardize column names
+            df.columns = [col.capitalize() for col in df.columns]
             
-            # Ensure we have the required columns
-            # Yahoo Finance returns: Open, High, Low, Close, Adj Close, Volume
-            required_cols = ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
+            # Ensure we have Adj Close (if not, use Close)
+            if 'Adj Close' not in df.columns and 'Close' in df.columns:
+                df['Adj Close'] = df['Close']
+                st.info("Using 'Close' as 'Adj Close'")
             
-            # Check if we have all columns
-            for col in required_cols:
-                if col not in df.columns:
-                    st.warning(f"Column '{col}' not found in Yahoo Finance data")
-            
+            st.success(f"✅ Successfully loaded {len(df)} rows for {ticker}")
             return df
             
         except Exception as e:
             st.error(f"Error loading from Yahoo Finance: {e}")
+            
+            # Try one last method with different interval
+            try:
+                st.warning("Attempting final fallback method...")
+                import yfinance as yf
+                df = yf.download(ticker, period='max', interval='1d', progress=False)
+                if not df.empty:
+                    df.columns = [col.capitalize() for col in df.columns]
+                    if 'Adj Close' not in df.columns and 'Close' in df.columns:
+                        df['Adj Close'] = df['Close']
+                    st.success("✅ Fallback method successful!")
+                    return df
+            except:
+                pass
+            
             return None
     
     else:  # Local CSV Files
@@ -49,6 +83,14 @@ def load_data(data_source, ticker, start_date=None, end_date=None):
             if start_date and end_date:
                 df = df[(df.index >= pd.to_datetime(start_date)) & 
                         (df.index <= pd.to_datetime(end_date))]
+            
+            # Ensure we have Adj Close
+            if 'Adj Close' not in df.columns:
+                if 'Close' in df.columns:
+                    df['Adj Close'] = df['Close']
+                elif 'Price' in df.columns:
+                    df['Adj Close'] = df['Price']
+            
             return df
         else:
             st.error(f"Local file not found: {file_path}")
