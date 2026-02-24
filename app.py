@@ -9,7 +9,7 @@ from config import DATA_SOURCE_OPTIONS, CURRENCY_PAIRS, STRATEGY_OPTIONS
 from data_loader import load_data
 from indicators import add_indicators
 from strategies import generate_signal
-from metrics import calculate_metrics
+from metrics import calculate_metrics, calculate_market_return
 
 st.set_page_config(layout="wide")
 st.title("📊 Forex Trading Strategy Backtester")
@@ -36,6 +36,7 @@ if data_source == "Yahoo Finance (Live)":
 else:
     start_date = None
     end_date = None
+    st.sidebar.info("Using local CSV files")
 
 # Strategy
 strategy = st.sidebar.selectbox("Trading Strategy", STRATEGY_OPTIONS)
@@ -98,28 +99,20 @@ if run_button:
         # Generate signals
         df['Signal'] = generate_signal(df, strategy, **params)
         
-        # Calculate returns with position sizing
+        # ==============================
+        # SIMPLE RETURNS CALCULATION
+        # ==============================
+        # Daily returns
         df['Returns'] = df['Adj Close'].pct_change()
         
-       # Calculate returns with position sizing (FIXED VERSION)
-        df['Returns'] = df['Adj Close'].pct_change()
+        # Strategy returns (follow signal with 1 day delay)
+        df['Strategy_Returns'] = df['Signal'].shift(1) * df['Returns']
         
-        # Calculate pip movement (for EUR/USD, 1 pip = 0.0001)
-        df['Pip_Movement'] = df['Adj Close'].diff() / 0.0001
+        # Cumulative returns (starting from 1)
+        df['Cumulative_Strategy'] = (1 + df['Strategy_Returns']).cumprod()
+        df['Cumulative_Market'] = (1 + df['Returns']).cumprod()
         
-        # Position value in £ (simplified: 1 lot = £10 per pip)
-        pip_value = 10  # £10 per pip for standard lot
-        df['Daily_PnL'] = df['Signal'].shift(1) * df['Pip_Movement'] * pip_value
-        
-        # Track account balance
-        df['Account_Balance'] = initial_capital + df['Daily_PnL'].cumsum()
-        
-        # Calculate strategy returns
-        df['Prev_Balance'] = df['Account_Balance'].shift(1).fillna(initial_capital)
-        df['Strategy_Returns'] = df['Daily_PnL'] / df['Prev_Balance']
-        df['Strategy_Returns'] = df['Strategy_Returns'].replace([np.inf, -np.inf], 0).fillna(0)
-        
-        # Remove any remaining NaN values
+        # Remove NaN
         df = df.dropna()
         
         # Split into train/test
@@ -128,109 +121,108 @@ if run_button:
         test = df.iloc[split_idx:]
         
         # Calculate metrics
-        train_metrics = calculate_metrics(train, initial_capital)
-        test_metrics = calculate_metrics(test, train_metrics['final_balance'])
+        train_metrics = calculate_metrics(train)
+        test_metrics = calculate_metrics(test)
+        market_return = calculate_market_return(df)
         
         # ==============================
         # Display Results
         # ==============================
         st.subheader(f"📊 {selected_pair} - {strategy}")
         
-        # Display metrics
+        # Metrics row 1
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Test Return", f"{test_metrics['total_return']:.2f}%")
-        col2.metric("Test Sharpe", f"{test_metrics['sharpe']:.2f}")
-        col3.metric("Max DD", f"{test_metrics['max_drawdown']:.1f}%")
-        col4.metric("Win Rate", f"{test_metrics['win_rate']:.1f}%")
+        col2.metric("Market Return", f"{market_return:.2f}%")
+        col3.metric("Outperformance", f"{test_metrics['total_return'] - market_return:.2f}%")
+        col4.metric("Sharpe Ratio", f"{test_metrics['sharpe']:.2f}")
         
-        # Plot equity curves
-        st.subheader("📈 Strategy Performance (Starting at £1)")
+        # Metrics row 2
+        col5, col6, col7, col8 = st.columns(4)
+        col5.metric("Max Drawdown", f"{test_metrics['max_drawdown']:.1f}%")
+        col6.metric("Win Rate", f"{test_metrics['win_rate']:.1f}%")
+        col7.metric("Number of Trades", test_metrics['trades'])
+        col8.metric("Train Return", f"{train_metrics['total_return']:.2f}%")
+        
+        # Equity curve
+        st.subheader("📈 Cumulative Returns (Starting from £1)")
         equity_df = pd.DataFrame({
             'Strategy': df['Cumulative_Strategy'],
             'Buy & Hold': df['Cumulative_Market']
         })
         st.line_chart(equity_df)
         
-        col5, col6, col7, col8 = st.columns(4)
-        col5.metric("Win Rate", f"{test_metrics['win_rate']:.1f}%")
-        col6.metric("Trades", test_metrics['number_of_trades'])
-        col7.metric("Train Return", f"{train_metrics['total_return_pct']:.2f}%")
-        col8.metric("Train Sharpe", f"{train_metrics['sharpe_ratio']:.2f}")
-        
-        # Equity curve
-        st.subheader("📈 Account Balance")
-        equity_df = pd.DataFrame({
-            'Strategy': df['Account_Balance'],
-            'Buy & Hold': initial_capital * (df['Adj Close'] / df['Adj Close'].iloc[0])
-        })
-        st.line_chart(equity_df)
-        
         # Price chart with signals
-        st.subheader("📉 Price & Signals")
+        st.subheader("📉 Price Chart with Signals")
         
         fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
                            vertical_spacing=0.05, row_heights=[0.7, 0.3])
         
-        # Price
+        # Price line
         fig.add_trace(go.Scatter(x=df.index, y=df['Adj Close'],
                                  name='Price', line=dict(color='blue')), row=1, col=1)
         
         # Buy signals
         buys = df[df['Signal'] == 1]
-        fig.add_trace(go.Scatter(x=buys.index, y=buys['Adj Close'],
-                                 mode='markers', name='Buy',
-                                 marker=dict(color='green', size=8, symbol='triangle-up')), row=1, col=1)
+        if len(buys) > 0:
+            fig.add_trace(go.Scatter(x=buys.index, y=buys['Adj Close'],
+                                     mode='markers', name='Buy',
+                                     marker=dict(color='green', size=8, symbol='triangle-up')), row=1, col=1)
         
         # Sell signals
         sells = df[df['Signal'] == -1]
-        fig.add_trace(go.Scatter(x=sells.index, y=sells['Adj Close'],
-                                 mode='markers', name='Sell',
-                                 marker=dict(color='red', size=8, symbol='triangle-down')), row=1, col=1)
+        if len(sells) > 0:
+            fig.add_trace(go.Scatter(x=sells.index, y=sells['Adj Close'],
+                                     mode='markers', name='Sell',
+                                     marker=dict(color='red', size=8, symbol='triangle-down')), row=1, col=1)
         
-               # Add train/test split line
+        # Train/test split line
         if len(train) > 0:
             split_date = train.index[-1]
-            # Convert to string to avoid Plotly datetime bug
-            split_date_str = split_date.strftime('%Y-%m-%d')
-            
-            # Add the vertical line without annotation first
             fig.add_vline(x=split_date, line_dash="dash", line_color="orange", row=1, col=1)
-            
-            # Add annotation separately
-            fig.add_annotation(
-                x=split_date,
-                y=0.98,
-                yref="paper",
-                text="Train/Test Split",
-                showarrow=False,
-                font=dict(size=10, color="orange"),
-                row=1, col=1
-            )
+            fig.add_annotation(x=split_date, y=0.98, yref="paper", text="Train/Test Split",
+                              showarrow=False, font=dict(size=10, color="orange"), row=1, col=1)
+        
         # Indicator subplot
         if strategy == "RSI Strategy":
             fig.add_trace(go.Scatter(x=df.index, y=df['RSI'],
                                      name='RSI', line=dict(color='purple')), row=2, col=1)
             fig.add_hline(y=overbought, line_dash="dash", line_color="red", row=2, col=1)
             fig.add_hline(y=oversold, line_dash="dash", line_color="green", row=2, col=1)
+            fig.update_yaxes(title_text="RSI", row=2, col=1)
             
         elif strategy == "MACD Strategy":
             fig.add_trace(go.Scatter(x=df.index, y=df['MACD'],
                                      name='MACD', line=dict(color='blue')), row=2, col=1)
             fig.add_trace(go.Scatter(x=df.index, y=df['MACD_signal'],
                                      name='Signal', line=dict(color='orange')), row=2, col=1)
+            fig.update_yaxes(title_text="MACD", row=2, col=1)
             
         else:  # Bollinger
             fig.add_trace(go.Scatter(x=df.index, y=df['BB_upper'],
-                                     name='Upper', line=dict(color='gray', dash='dash')), row=1, col=1)
+                                     name='Upper Band', line=dict(color='gray', dash='dash')), row=1, col=1)
             fig.add_trace(go.Scatter(x=df.index, y=df['BB_lower'],
-                                     name='Lower', line=dict(color='gray', dash='dash')), row=1, col=1)
+                                     name='Lower Band', line=dict(color='gray', dash='dash')), row=1, col=1)
             fig.add_trace(go.Scatter(x=df.index, y=df['BB_middle'],
-                                     name='Middle', line=dict(color='black')), row=1, col=1)
+                                     name='Middle Band', line=dict(color='black')), row=1, col=1)
         
-        fig.update_layout(height=600, showlegend=True)
+        fig.update_layout(height=700, showlegend=True)
+        fig.update_xaxes(title_text="Date", row=2, col=1)
         st.plotly_chart(fig, use_container_width=True)
         
-        # Recent trades
-        st.subheader("📋 Recent Trades")
-        recent_trades = df[df['Signal'] != 0].tail(10)[['Adj Close', 'Signal', 'Daily_PnL']]
-        st.dataframe(recent_trades)
+        # Recent data
+        st.subheader("📋 Recent Data")
+        display_cols = ['Adj Close', 'Signal', 'Strategy_Returns', 'Cumulative_Strategy']
+        if 'RSI' in df.columns:
+            display_cols.append('RSI')
+        if 'MACD' in df.columns:
+            display_cols.extend(['MACD', 'MACD_signal'])
+        if 'BB_upper' in df.columns:
+            display_cols.extend(['BB_upper', 'BB_middle', 'BB_lower'])
+        
+        st.dataframe(df[display_cols].tail(20), use_container_width=True)
+
+# Footer
+st.sidebar.markdown("---")
+st.sidebar.caption("Forex Strategy Backtester v2.0")
+st.sidebar.caption("RSI (30/70) | MACD (12/26/9) | Bollinger (20,2)")
