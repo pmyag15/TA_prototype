@@ -5,13 +5,11 @@ import numpy as np
 def calculate_metrics(data):
     """
     Calculate performance metrics from strategy returns
-    No account balance, just pure percentage returns
+    Focus only on profitability metrics
     """
     if len(data) == 0:
         return {
             'total_return': 0.0,
-            'sharpe': 0.0,
-            'max_drawdown': 0.0,
             'win_rate': 0.0,
             'trades': 0
         }
@@ -21,18 +19,6 @@ def calculate_metrics(data):
         total_return = (data['Cumulative_Strategy'].iloc[-1] - 1) * 100
     else:
         total_return = ((1 + data['Strategy_Returns']).prod() - 1) * 100
-    
-    # Sharpe ratio (annualized)
-    if data['Strategy_Returns'].std() != 0:
-        sharpe = np.sqrt(252) * data['Strategy_Returns'].mean() / data['Strategy_Returns'].std()
-    else:
-        sharpe = 0.0
-    
-    # Max drawdown
-    cum_returns = (1 + data['Strategy_Returns']).cumprod()
-    peak = cum_returns.cummax()
-    drawdown = (cum_returns - peak) / peak
-    max_dd = drawdown.min() * 100
     
     # Win rate (percentage of days with positive returns)
     winning_days = (data['Strategy_Returns'] > 0).sum()
@@ -44,8 +30,6 @@ def calculate_metrics(data):
     
     return {
         'total_return': total_return,
-        'sharpe': sharpe,
-        'max_drawdown': max_dd,
         'win_rate': win_rate,
         'trades': trades
     }
