@@ -157,7 +157,7 @@ if run_button:
         col8.metric("Train Return", f"{train_metrics['total_return']:.2f}%")
         
         # Equity curve
-        st.subheader("📈 Cumulative Returns (Starting from £1)")
+        st.subheader("📈 Cumulative Returns (Initial Investment = 1 Unit)")
         equity_df = pd.DataFrame({
             'Strategy': df['Cumulative_Strategy'],
             'Buy & Hold': df['Cumulative_Market']
