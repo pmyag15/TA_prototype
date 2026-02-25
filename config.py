@@ -4,14 +4,18 @@ import streamlit as st
 # Data source selection
 DATA_SOURCE_OPTIONS = ["Yahoo Finance (Live)", "Local CSV Files"]
 
-# Currency pairs (Yahoo Finance symbols)
-CURRENCY_PAIRS = [
+# Yahoo Finance - ALL available pairs (for live data)
+YAHOO_PAIRS = [
     "EURUSD=X", "GBPUSD=X", "AUDUSD=X", "USDCAD=X", "USDJPY=X",
     "NZDUSD=X", "USDCHF=X", "EURGBP=X", "EURAUD=X", "GBPJPY=X",
-    "AUDJPY=X", "EURJPY=X", "CADJPY=X", "CHFJPY=X", "NZDJPY=X"
+    "AUDJPY=X", "EURJPY=X", "CADJPY=X", "CHFJPY=X", "NZDJPY=X",
+    "EURCAD=X", "GBPCAD=X", "AUDCAD=X", "GBPAUD=X", "EURNZD=X"
 ]
 
-# Local file mapping (only used if local files are selected)
+# Local files - ONLY the 5 pairs 
+LOCAL_PAIRS = ["EURUSD=X", "GBPUSD=X", "AUDUSD=X", "USDCAD=X", "USDJPY=X"]
+
+# Local file mapping
 LOCAL_FILE_MAPPING = {
     "EURUSD=X": "data/EURUSD=X.csv",
     "GBPUSD=X": "data/GBPUSD=X.csv",
