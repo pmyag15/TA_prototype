@@ -18,15 +18,27 @@ st.caption("Test RSI, MACD, and Bollinger Band strategies on major forex pairs")
 # ==============================
 # Sidebar
 # ==============================
-st.sidebar.header("Configuration")
+st.sidebar.header("Data Settings")
 
-# Data source
 data_source = st.sidebar.selectbox("Data Source", DATA_SOURCE_OPTIONS)
 
-# Currency pair
-selected_pair = st.sidebar.selectbox("Currency Pair", CURRENCY_PAIRS)
+# Currency pair selection based on data source
+if data_source == "Yahoo Finance (Live)":
+    from config import YAHOO_PAIRS
+    available_pairs = YAHOO_PAIRS
+    pair_help = "All major forex pairs available via Yahoo Finance"
+else:  # Local CSV Files
+    from config import LOCAL_PAIRS
+    available_pairs = LOCAL_PAIRS
+    pair_help = "Only pairs with local CSV files in /data folder"
 
-# Date range
+selected_pair = st.sidebar.selectbox(
+    "Currency Pair", 
+    available_pairs,
+    help=pair_help
+)
+
+# Date range (only for Yahoo Finance)
 if data_source == "Yahoo Finance (Live)":
     col1, col2 = st.sidebar.columns(2)
     with col1:
@@ -36,7 +48,7 @@ if data_source == "Yahoo Finance (Live)":
 else:
     start_date = None
     end_date = None
-    st.sidebar.info("Using local CSV files")
+    st.sidebar.info("Using local CSV files - date range from file")
 
 # Strategy
 strategy = st.sidebar.selectbox("Trading Strategy", STRATEGY_OPTIONS)
