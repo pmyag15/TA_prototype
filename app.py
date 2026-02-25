@@ -5,7 +5,7 @@ from datetime import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from config import DATA_SOURCE_OPTIONS, CURRENCY_PAIRS, STRATEGY_OPTIONS
+from config import DATA_SOURCE_OPTIONS, YAHOO_PAIRS, LOCAL_PAIRS, STRATEGY_OPTIONS
 from data_loader import load_data
 from indicators import add_indicators
 from strategies import generate_signal
