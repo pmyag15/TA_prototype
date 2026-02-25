@@ -149,10 +149,10 @@ if run_button:
         col3.metric("Outperformance", f"{test_metrics['total_return'] - market_return:.2f}%")
         
         # Metrics row 2 - Consistency
-        col4, col5, col6 = st.columns(3)
-        col4.metric("Win Rate", f"{test_metrics['win_rate']:.1f}%")
-        col5.metric("Number of Trades", test_metrics['trades'])
-        col6.metric("Train Return", f"{train_metrics['total_return']:.2f}%")
+        col4.metric("Win Rate (Test)", f"{test_metrics['win_rate']:.1f}%")
+        col5.metric("Test Trades", test_metrics['trades'])
+        col6.metric("Train Trades", train_metrics['trades'])
+        col7.metric("Train Return", f"{train_metrics['total_return']:.2f}%")
         
         # Equity curve
         st.subheader("📈 Cumulative Returns (Initial Investment = 1 Unit)")
