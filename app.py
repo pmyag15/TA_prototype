@@ -142,19 +142,17 @@ if run_button:
         # ==============================
         st.subheader(f"📊 {selected_pair} - {strategy}")
         
-        # Metrics row 1
-        col1, col2, col3, col4 = st.columns(4)
+        # Metrics row 1 - Profitability
+        col1, col2, col3 = st.columns(3)
         col1.metric("Test Return", f"{test_metrics['total_return']:.2f}%")
         col2.metric("Market Return", f"{market_return:.2f}%")
         col3.metric("Outperformance", f"{test_metrics['total_return'] - market_return:.2f}%")
-        col4.metric("Sharpe Ratio", f"{test_metrics['sharpe']:.2f}")
         
-        # Metrics row 2
-        col5, col6, col7, col8 = st.columns(4)
-        col5.metric("Max Drawdown", f"{test_metrics['max_drawdown']:.1f}%")
-        col6.metric("Win Rate", f"{test_metrics['win_rate']:.1f}%")
-        col7.metric("Number of Trades", test_metrics['trades'])
-        col8.metric("Train Return", f"{train_metrics['total_return']:.2f}%")
+        # Metrics row 2 - Consistency
+        col4, col5, col6 = st.columns(3)
+        col4.metric("Win Rate", f"{test_metrics['win_rate']:.1f}%")
+        col5.metric("Number of Trades", test_metrics['trades'])
+        col6.metric("Train Return", f"{train_metrics['total_return']:.2f}%")
         
         # Equity curve
         st.subheader("📈 Cumulative Returns (Initial Investment = 1 Unit)")
