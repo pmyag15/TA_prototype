@@ -132,15 +132,15 @@ if run_button:
         train = df.iloc[:split_idx]
         test = df.iloc[split_idx:]
         
-        # Calculate metrics
-        train_metrics = calculate_metrics(train)
-        test_metrics = calculate_metrics(test)
-        market_return = calculate_market_return(df)
-        
         # ==============================
         # Display Results
         # ==============================
         st.subheader(f"📊 {selected_pair} - {strategy}")
+        
+        # Calculate metrics
+        train_metrics = calculate_metrics(train)
+        test_metrics = calculate_metrics(test)
+        market_return = calculate_market_return(df)
         
         # Metrics row 1 - Profitability
         col1, col2, col3 = st.columns(3)
@@ -148,7 +148,8 @@ if run_button:
         col2.metric("Market Return", f"{market_return:.2f}%")
         col3.metric("Outperformance", f"{test_metrics['total_return'] - market_return:.2f}%")
         
-        # Metrics row 2 - Consistency
+        # Metrics row 2 - Consistency & Context
+        col4, col5, col6, col7 = st.columns(4)
         col4.metric("Win Rate (Test)", f"{test_metrics['win_rate']:.1f}%")
         col5.metric("Test Trades", test_metrics['trades'])
         col6.metric("Train Trades", train_metrics['trades'])
