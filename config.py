@@ -2,14 +2,16 @@
 import streamlit as st
 
 # Data source selection
-DATA_SOURCE_OPTIONS = ["Yahoo Finance (Live)", "Local CSV Files"]
+DATA_SOURCE_OPTIONS = [
+    "Yahoo Finance (Live)", 
+    "Selected Backtest Pairs (5 Major Forex Pairs)"
+]
 
 # Yahoo Finance - ALL available pairs (for live data)
 YAHOO_PAIRS = [
     "EURUSD=X", "GBPUSD=X", "AUDUSD=X", "USDCAD=X", "USDJPY=X",
     "NZDUSD=X", "USDCHF=X", "EURGBP=X", "EURAUD=X", "GBPJPY=X",
-    "AUDJPY=X", "EURJPY=X", "CADJPY=X", "CHFJPY=X", "NZDJPY=X",
-    "EURCAD=X", "GBPCAD=X", "AUDCAD=X", "GBPAUD=X", "EURNZD=X"
+    "AUDJPY=X", "EURJPY=X", "CADJPY=X", "CHFJPY=X", "NZDJPY=X"
 ]
 
 # Local files - ONLY the 5 pairs 
