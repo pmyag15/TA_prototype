@@ -19,7 +19,7 @@ def calculate_metrics(data):
     else:
         total_return = ((1 + data['Strategy_Returns']).prod() - 1) * 100
     
-    # FIXED: Win rate calculated ONLY on active trading days
+    # Win rate calculated ONLY on active trading days
     active_days = data[data['Strategy_Returns'] != 0]
     if len(active_days) > 0:
         winning_days = (active_days['Strategy_Returns'] > 0).sum()
@@ -34,6 +34,7 @@ def calculate_metrics(data):
         'total_return': total_return,
         'win_rate': win_rate,
         'trades': trades
+    }  # <-- Closing bracket added here
 
 def calculate_market_return(data):
     """Calculate buy and hold return"""
