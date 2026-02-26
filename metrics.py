@@ -39,4 +39,7 @@ def calculate_market_return(data):
     """Calculate buy and hold return"""
     if len(data) == 0:
         return 0.0
-    return (data['Cumulative_Market'].iloc[-1] - 1) * 100 if 'Cumulative_Market' in data.columns else 0.0
+    if 'Cumulative_Market' in data.columns:
+        return (data['Cumulative_Market'].iloc[-1] - 1) * 100
+    else:
+        return ((1 + data['Returns']).prod() - 1) * 100
