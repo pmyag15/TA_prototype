@@ -145,7 +145,7 @@ if run_button:
         # Metrics row 1 - Profitability
         col1, col2, col3 = st.columns(3)
         col1.metric("Test Return", f"{test_metrics['total_return']:.2f}%")
-        col2.metric("Market Return", f"{market_return:.2f}%")
+        col2.metric("Buy-and-Hold Return", f"{market_return:.2f}%")
         col3.metric("Outperformance", f"{test_metrics['total_return'] - market_return:.2f}%")
         
         # Metrics row 2 - Consistency & Context
