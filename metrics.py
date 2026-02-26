@@ -5,7 +5,6 @@ import numpy as np
 def calculate_metrics(data):
     """
     Calculate performance metrics from strategy returns
-    Focus only on profitability metrics
     """
     if len(data) == 0:
         return {
@@ -20,10 +19,13 @@ def calculate_metrics(data):
     else:
         total_return = ((1 + data['Strategy_Returns']).prod() - 1) * 100
     
-    # Win rate (percentage of days with positive returns)
-    winning_days = (data['Strategy_Returns'] > 0).sum()
-    total_days = len(data)
-    win_rate = (winning_days / total_days * 100) if total_days > 0 else 0.0
+    # FIXED: Win rate calculated ONLY on active trading days
+    active_days = data[data['Strategy_Returns'] != 0]
+    if len(active_days) > 0:
+        winning_days = (active_days['Strategy_Returns'] > 0).sum()
+        win_rate = (winning_days / len(active_days) * 100)
+    else:
+        win_rate = 0.0
     
     # Number of trades (days with signal changes)
     trades = (data['Signal'] != 0).sum()
@@ -32,7 +34,6 @@ def calculate_metrics(data):
         'total_return': total_return,
         'win_rate': win_rate,
         'trades': trades
-    }
 
 def calculate_market_return(data):
     """Calculate buy and hold return"""
